@@ -8,7 +8,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class JobStore{
 
-    private static final String QUEUE_KEY = "job:queue";
     private final StringRedisTemplate redisTemplate;
 
     public JobStore(StringRedisTemplate redisTemplate){
@@ -21,7 +20,6 @@ public class JobStore{
 
         redisTemplate.opsForValue().set(key,job.getType());
 
-        redisTemplate.opsForList().rightPush(QUEUE_KEY, job.getId().toString());
     }
 
     public String findById(UUID id) {

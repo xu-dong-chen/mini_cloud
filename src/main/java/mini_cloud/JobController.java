@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/jobs")
 public class JobController {
 
+    // Controls list of jobs and the queue
     private final JobStore jobs;
+    private final JobQueue jobQueue;
 
-    public JobController(JobStore jobs){ // jobs created by Spring as JobStore is @Component
+    public JobController(JobStore jobs, JobQueue jobQueue){ // jobs created by Spring as JobStore is @Component
         this.jobs = jobs; 
+        this.jobQueue = jobQueue;
     }
 
     @PostMapping
@@ -25,6 +28,7 @@ public class JobController {
         Job job = new Job(request.type());
 
         jobs.save(job);
+        jobQueue.enqueue(job.getId().toString());
 
         return job;
     }
