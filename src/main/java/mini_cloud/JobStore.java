@@ -18,7 +18,8 @@ public class JobStore{
         
         String key = "job:" + job.getId();
 
-        redisTemplate.opsForValue().set(key,job.getType());
+        String value = job.getType() + "|" + job.getStatus() + "|" + (job.getResult() == null ? "": job.getResult()); 
+        redisTemplate.opsForValue().set(key,value);
 
     }
 
@@ -27,5 +28,26 @@ public class JobStore{
         String key = "job:" + id;
         
         return redisTemplate.opsForValue().get(key);
+    }
+
+    // function that updates the status of the job (Type|Status|result)
+    public void updateStatus(UUID id, String status, String result) {
+        String key = "job:" + id;
+
+        String current = redisTemplate.opsForValue().get(key);
+
+        if (current == null){
+            return;
+        }
+
+        String[] parts = current.split("\\|", -1);
+
+        String type = parts[0]; 
+
+        String value = type + "|" +
+                       status + "|" +
+                       (result == null ? "" : result);
+
+        redisTemplate.opsForValue().set(key,value);
     }
 }

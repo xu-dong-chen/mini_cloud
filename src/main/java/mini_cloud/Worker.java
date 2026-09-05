@@ -1,5 +1,7 @@
 package mini_cloud;
 
+import java.util.UUID;
+
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
@@ -29,15 +31,74 @@ public class Worker implements CommandLineRunner {
                 continue;
             }
 
-            // Gets the type of job
-            String jobType = jobStore.findById(
-                    java.util.UUID.fromString(jobId)
-            );
+            UUID id = UUID.fromString(jobId);
+
+            String jobData = jobStore.findById(id);
 
             System.out.println(
                     "Worker received job: " + jobId +
-                    " type=" + jobType
+                    " data=" + jobData
             );
+
+            executeJob(jobId,jobData);
         }
+    }
+
+    // function to execute the job
+    private void executeJob(String jobId, String jobData) {
+
+        UUID id = UUID.fromString(jobId);
+
+        String[] parts = jobData.split("\\|", -1);
+
+        String type = parts[0];
+
+        jobStore.updateStatus(id, "RUNNING", null);
+
+        System.out.println(
+                "Executing job " +
+                jobId +
+                " type=" +
+                type
+        );
+
+        // switch case for each type of job
+        switch (type) {
+
+            case "ADD":
+                jobStore.updateStatus(
+                        id,
+                        "COMPLETED",
+                        "42"
+                );
+                break;
+
+            case "Subtract":
+                jobStore.updateStatus(
+                        id,
+                        "COMPLETED",
+                        "8"
+                );
+                break;
+
+            case "test":
+                jobStore.updateStatus(
+                        id,
+                        "COMPLETED",
+                        "Test successful"
+                );
+                break;
+
+            default:
+                jobStore.updateStatus(
+                        id,
+                        "FAILED",
+                        "Unknown job type"
+                );
+        }
+
+        System.out.println(
+                "Job " + jobId + " finished."
+        );
     }
 }
