@@ -34,7 +34,7 @@ public class JobController {
     }
 
     @GetMapping("/{id}")
-    public String getJob(@PathVariable UUID id) {
+    public Job getJob(@PathVariable UUID id) {
 
         return jobs.findById(id);
     }

@@ -23,11 +23,27 @@ public class JobStore{
 
     }
 
-    public String findById(UUID id) {
+    public Job findById(UUID id) {
 
         String key = "job:" + id;
+
+        String value = redisTemplate.opsForValue().get(key);
+
+        if (value == null){
+            return null;
+        }
+
+        String[] parts = value.split("\\|", -1);
+
+        Job job = new Job(parts[0]);
+
+        job.setStatus(parts[1]);
+
+        if (!parts[2].isEmpty()){
+            job.setResult(parts[2]);
+        }
         
-        return redisTemplate.opsForValue().get(key);
+        return job;
     }
 
     // function that updates the status of the job (Type|Status|result)

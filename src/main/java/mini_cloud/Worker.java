@@ -33,25 +33,25 @@ public class Worker implements CommandLineRunner {
 
             UUID id = UUID.fromString(jobId);
 
-            String jobData = jobStore.findById(id);
+            Job job = jobStore.findById(id);
 
             System.out.println(
-                    "Worker received job: " + jobId +
-                    " data=" + jobData
+                    "Worker received job: " + job.getId() +
+                    " type = " + job.getType() +
+                    " status = " + job.getStatus()
             );
 
-            executeJob(jobId,jobData);
+            executeJob(job);
         }
     }
 
     // function to execute the job
-    private void executeJob(String jobId, String jobData) {
-
+    private void executeJob(Job job) {
+        String jobId = job.getId().toString(); 
+        
         UUID id = UUID.fromString(jobId);
 
-        String[] parts = jobData.split("\\|", -1);
-
-        String type = parts[0];
+        String type = job.getType();
 
         jobStore.updateStatus(id, "RUNNING", null);
 
