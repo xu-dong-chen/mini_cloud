@@ -73,15 +73,35 @@ public class Worker implements CommandLineRunner {
                 );
                 break;
 
-            case "Subtract":
+            case "SUBTRACT":
                 jobStore.updateStatus(
                         id,
                         "COMPLETED",
                         "8"
                 );
                 break;
+            
+            case "SLEEP":
+                try {
+                    Thread.sleep(5000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
 
-            case "test":
+                    jobStore.updateStatus(
+                            id,
+                            "Failed",
+                            "SLEEP interrupted"
+                    );
+                    break;
+                }
+                jobStore.updateStatus(
+                            id,
+                            "COMPLETED",
+                            "Slept for 5 seconds"
+                );
+                break;
+
+            case "TEST":
                 jobStore.updateStatus(
                         id,
                         "COMPLETED",
