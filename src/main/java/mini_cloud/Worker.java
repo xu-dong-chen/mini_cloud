@@ -12,6 +12,8 @@ public class Worker implements CommandLineRunner {
     private final JobQueue jobQueue;
     private final JobStore jobStore;
 
+    private static final int NumberOfWorkers = 3;
+
     public Worker(JobQueue jobQueue, JobStore jobStore) {
         this.jobQueue = jobQueue;
         this.jobStore = jobStore;
@@ -20,7 +22,22 @@ public class Worker implements CommandLineRunner {
     @Override
     public void run(String... args) {
 
-        System.out.println("Worker started.");
+        System.out.println("starting " + NumberOfWorkers + " workers");
+
+        for(int i = 1; i <= NumberOfWorkers; i++){
+            int workerId = i;
+
+            Thread thread = new Thread(
+                () -> workerLoop(workerId),
+                "worker-" + workerId
+            );
+
+            thread.start();
+        }
+    }
+
+    private void workerLoop(int workerId){
+        System.out.println("Worker " + workerId + " started");
 
         while (true) {
 
@@ -34,6 +51,11 @@ public class Worker implements CommandLineRunner {
             UUID id = UUID.fromString(jobId);
 
             Job job = jobStore.findById(id);
+            
+            if (job == null){
+                System.out.println("Worker " + workerId + " could not find job" + jobId);
+                continue;
+            }
 
             System.out.println(
                     "Worker received job: " + job.getId() +
@@ -41,22 +63,19 @@ public class Worker implements CommandLineRunner {
                     " status = " + job.getStatus()
             );
 
-            executeJob(job);
+            executeJob(job, workerId);
         }
     }
 
     // function to execute the job
-    private void executeJob(Job job) {
-        String jobId = job.getId().toString(); 
-        
-        UUID id = UUID.fromString(jobId);
+    private void executeJob(Job job, int workerId) {
 
+        String jobId = job.getId().toString(); 
         String type = job.getType();
 
-        jobStore.updateStatus(id, "RUNNING", null);
-
         System.out.println(
-                "Executing job " +
+                "worker " + workerId +
+                " executing job " +
                 jobId +
                 " type=" +
                 type
@@ -64,10 +83,9 @@ public class Worker implements CommandLineRunner {
 
         // switch case for each type of job
         switch (type) {
-
             case "ADD":
                 jobStore.updateStatus(
-                        id,
+                        job.getId(),
                         "COMPLETED",
                         "42"
                 );
@@ -75,7 +93,7 @@ public class Worker implements CommandLineRunner {
 
             case "SUBTRACT":
                 jobStore.updateStatus(
-                        id,
+                        job.getId(),
                         "COMPLETED",
                         "8"
                 );
@@ -88,14 +106,14 @@ public class Worker implements CommandLineRunner {
                     Thread.currentThread().interrupt();
 
                     jobStore.updateStatus(
-                            id,
+                            job.getId(),
                             "Failed",
                             "SLEEP interrupted"
                     );
                     break;
                 }
                 jobStore.updateStatus(
-                            id,
+                            job.getId(),
                             "COMPLETED",
                             "Slept for 5 seconds"
                 );
@@ -103,7 +121,7 @@ public class Worker implements CommandLineRunner {
 
             case "TEST":
                 jobStore.updateStatus(
-                        id,
+                        job.getId(),
                         "COMPLETED",
                         "Test successful"
                 );
@@ -111,14 +129,12 @@ public class Worker implements CommandLineRunner {
 
             default:
                 jobStore.updateStatus(
-                        id,
+                        job.getId(),
                         "FAILED",
                         "Unknown job type"
                 );
         }
 
-        System.out.println(
-                "Job " + jobId + " finished."
-        );
+        System.out.println("Worker" + workerId + " finished job " + jobId);
     }
 }
