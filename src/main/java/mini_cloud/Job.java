@@ -9,10 +9,19 @@ public class Job{
 	private String status;
 	private String result;
 	
-	public Job(String type){
-		this.id = UUID.randomUUID();
+	// For actual new jobs
+	public Job(String type) { 
+		this.id = UUID.randomUUID(); 
+		this.type = type; 
+		this.status = "QUEUED"; 
+	}
+
+	// For reconstructing jobs from Redis
+	public Job(UUID id, String type, String status, String result){
+		this.id = id;
 		this.type = type;
-		this.status = "QUEUED";
+		this.status = status;
+		this.result = result;
 	}
 
 	public UUID getId(){

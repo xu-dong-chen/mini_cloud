@@ -35,15 +35,12 @@ public class JobStore{
 
         String[] parts = value.split("\\|", -1);
 
-        Job job = new Job(parts[0]);
-
-        job.setStatus(parts[1]);
-
-        if (!parts[2].isEmpty()){
-            job.setResult(parts[2]);
-        }
+        String type = parts[0];
+        String status = parts[1];
+        String result = parts[2].isEmpty() ? null : parts[2]; // result is null if there was originally nothing
         
-        return job;
+        
+        return new Job(id, type, status, result);
     }
 
     // function that updates the status of the job (Type|Status|result)
