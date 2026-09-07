@@ -48,12 +48,16 @@ public class Worker implements CommandLineRunner {
                 continue;
             }
 
+            jobQueue.markProcessing(jobId);
+            jobQueue.createLease(jobId, workerId);
+
             UUID id = UUID.fromString(jobId);
 
             Job job = jobStore.findById(id);
             
             if (job == null){
                 System.out.println("Worker " + workerId + " could not find job" + jobId);
+                jobQueue.markedComplete(jobId);
                 continue;
             }
 
@@ -64,6 +68,8 @@ public class Worker implements CommandLineRunner {
             );
 
             executeJob(job, workerId);
+            jobQueue.markedComplete(jobId);
+            jobQueue.releaseLease(jobId);
         }
     }
 
