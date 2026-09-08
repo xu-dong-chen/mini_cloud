@@ -12,8 +12,6 @@ public class Worker implements CommandLineRunner {
     private final JobQueue jobQueue;
     private final JobStore jobStore;
 
-    private static final int NumberOfWorkers = 3;
-
     public Worker(JobQueue jobQueue, JobStore jobStore) {
         this.jobQueue = jobQueue;
         this.jobStore = jobStore;
@@ -21,19 +19,22 @@ public class Worker implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        int workerId = Integer.parseInt(System.getProperty("worker.id", "1"));
 
-        System.out.println("starting " + NumberOfWorkers + " workers");
+        System.out.println("starting worker " + workerId);
 
-        for(int i = 1; i <= NumberOfWorkers; i++){
-            int workerId = i;
+        // for(int i = 1; i <= NumberOfWorkers; i++){
+        //     int workerId = i;
 
-            Thread thread = new Thread(
-                () -> workerLoop(workerId),
-                "worker-" + workerId
-            );
+        //     Thread thread = new Thread(
+        //         () -> workerLoop(workerId),
+        //         "worker-" + workerId
+        //     );
 
-            thread.start();
-        }
+        //     thread.start();
+        // }
+
+        workerLoop(workerId);
     }
 
     private void workerLoop(int workerId){
@@ -66,7 +67,33 @@ public class Worker implements CommandLineRunner {
                     " status = " + job.getStatus()
             );
 
+            Thread heartbeat = new Thread(() -> {
+
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+
+                        Thread.sleep(3000);
+
+                        jobQueue.renewLease(jobId, workerId);
+
+                        System.out.println(
+                                "Worker " + workerId +
+                                " renewed lease for job " + jobId
+                        );
+                    }
+
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+            }, "heartbeat-" + workerId);
+
+            heartbeat.start();
+
             executeJob(job, workerId);
+
+            heartbeat.interrupt();
+
             jobQueue.markedComplete(jobId);
             jobQueue.releaseLease(jobId);
         }
@@ -106,7 +133,7 @@ public class Worker implements CommandLineRunner {
             
             case "SLEEP":
                 try {
-                    Thread.sleep(5000);
+                    Thread.sleep(20000);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
 
@@ -142,4 +169,32 @@ public class Worker implements CommandLineRunner {
 
         System.out.println("Worker" + workerId + " finished job " + jobId);
     }
+
+    // private void startHeartbeat(String jobId, int workerId, Thread[] heartbeatHolder) {
+
+    //     Thread heartbeat = new Thread(() -> {
+
+    //         try {
+    //             while (!Thread.currentThread().isInterrupted()) {
+
+    //                 Thread.sleep(3000);
+
+    //                 jobQueue.renewLease(jobId, workerId);
+
+    //                 System.out.println(
+    //                         "Worker " + workerId +
+    //                         " renewed lease for job " + jobId
+    //                 );
+    //             }
+
+    //         } catch (InterruptedException e) {
+    //             Thread.currentThread().interrupt();
+    //         }
+
+    //     }, "heartbeat-" + workerId);
+
+    //     heartbeat.start();
+
+    //     heartbeatHolder[0] = heartbeat;
+    // }
 }
