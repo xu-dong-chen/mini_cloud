@@ -41,14 +41,13 @@ public class Worker implements CommandLineRunner {
 
         while (true) {
 
-            String jobId = jobQueue.dequeue(); // Gets a job from the queue
+            String jobId = jobQueue.claimJob(); // Gets a job from the queue
 
             // Checks if there was a job
             if (jobId == null) {
                 continue;
             }
 
-            jobQueue.markProcessing(jobId);
             jobQueue.createLease(jobId, workerId);
 
             UUID id = UUID.fromString(jobId);
@@ -113,7 +112,7 @@ public class Worker implements CommandLineRunner {
 
                     jobStore.updateStatus(
                             job.getId(),
-                            "Failed",
+                            "FAILED",
                             "SLEEP interrupted"
                     );
                     break;

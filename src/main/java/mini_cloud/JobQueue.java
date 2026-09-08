@@ -9,8 +9,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class JobQueue {
 
-    private final Worker worker;
-
     private static final long LEASE_SECONDS = 10;
 
     private static final String QUEUE_KEY = "job:queue";
@@ -18,9 +16,8 @@ public class JobQueue {
     
     private final StringRedisTemplate redisTemplate;
 
-    public JobQueue(StringRedisTemplate redisTemplate, Worker worker) {
+    public JobQueue(StringRedisTemplate redisTemplate) {
         this.redisTemplate = redisTemplate;
-        this.worker = worker;
     }
 
     // Adds a job to the right of the list
@@ -47,7 +44,7 @@ public class JobQueue {
     public void createLease(String jobId, int workerId){
         String leaseKey = "job:lease:" + jobId;
 
-        redisTemplate.opsForValue().set(leaseKey, "worker-" + worker, Duration.ofSeconds(LEASE_SECONDS));
+        redisTemplate.opsForValue().set(leaseKey, "worker-" + workerId, Duration.ofSeconds(LEASE_SECONDS));
     }
 
     public void renewLease(String jobId, int workerId){
@@ -69,5 +66,15 @@ public class JobQueue {
     public void releaseLease(String jobId){
         String leaseKey = "job:lease:" + jobId;
         redisTemplate.delete(leaseKey);
+    }
+
+    public String claimJob() {
+
+        return redisTemplate.opsForList().move(
+                QUEUE_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
+                PROCESSING_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.LEFT
+        );
     }
 }
