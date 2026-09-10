@@ -18,7 +18,10 @@ public class JobStore{
         
         String key = "job:" + job.getId();
 
-        String value = job.getType() + "|" + job.getStatus() + "|" + (job.getResult() == null ? "": job.getResult()); 
+        String value = job.getType() + "|" + 
+                        job.getStatus() + "|" + 
+                        job.getAttempts() + "|" +
+                        (job.getResult() == null ? "": job.getResult()); 
         redisTemplate.opsForValue().set(key,value);
 
     }
@@ -37,30 +40,38 @@ public class JobStore{
 
         String type = parts[0];
         String status = parts[1];
-        String result = parts[2].isEmpty() ? null : parts[2]; // result is null if there was originally nothing
+        int attempts = Integer.parseInt(parts[2]);
+        String result = parts[3].isEmpty() ? null : parts[3]; // result is null if there was originally nothing
         
         
-        return new Job(id, type, status, result);
+        return new Job(id, type, status, result,attempts);
     }
 
-    // function that updates the status of the job (Type|Status|result)
+    // function that updates the status of the job (Type|Status|attempts|result)
     public void updateStatus(UUID id, String status, String result) {
-        String key = "job:" + id;
+        
+        Job job = findById(id);
 
-        String current = redisTemplate.opsForValue().get(key);
-
-        if (current == null){
+        if (job == null){
             return;
         }
 
-        String[] parts = current.split("\\|", -1);
+        job.setStatus(status);
+        job.setResult(result);
 
-        String type = parts[0]; 
+        // Uses the existing function save to do the rest
+        save(job);
+    }
 
-        String value = type + "|" +
-                       status + "|" +
-                       (result == null ? "" : result);
+    public void incrementAttempts(UUID id){
 
-        redisTemplate.opsForValue().set(key,value);
+        Job job = findById(id);
+
+        if (job == null){
+            return;
+        }
+
+        job.Attempted();
+        save(job);
     }
 }

@@ -8,20 +8,23 @@ public class Job{
 	private String type;
 	private String status;
 	private String result;
+	private int attempts;
 	
 	// For actual new jobs
 	public Job(String type) { 
 		this.id = UUID.randomUUID(); 
 		this.type = type; 
-		this.status = "QUEUED"; 
+		this.status = "QUEUED";
+		this.attempts = 0; 
 	}
 
 	// For reconstructing jobs from Redis
-	public Job(UUID id, String type, String status, String result){
+	public Job(UUID id, String type, String status, String result, int attempts){
 		this.id = id;
 		this.type = type;
 		this.status = status;
 		this.result = result;
+		this.attempts = attempts;
 	}
 
 	public UUID getId(){
@@ -46,6 +49,14 @@ public class Job{
 
 	public void setResult(String result){
 		this.result = result;
+	}
+
+	public int getAttempts(){
+		return attempts;
+	}
+
+	public void Attempted(){
+		attempts++;
 	}
 	
 }

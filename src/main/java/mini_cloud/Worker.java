@@ -23,17 +23,6 @@ public class Worker implements CommandLineRunner {
 
         System.out.println("starting worker " + workerId);
 
-        // for(int i = 1; i <= NumberOfWorkers; i++){
-        //     int workerId = i;
-
-        //     Thread thread = new Thread(
-        //         () -> workerLoop(workerId),
-        //         "worker-" + workerId
-        //     );
-
-        //     thread.start();
-        // }
-
         workerLoop(workerId);
     }
 
@@ -49,9 +38,11 @@ public class Worker implements CommandLineRunner {
                 continue;
             }
 
-            jobQueue.createLease(jobId, workerId);
+            jobQueue.createLease(jobId, workerId); // creates a lease for the job and worker
 
             UUID id = UUID.fromString(jobId);
+
+            jobStore.incrementAttempts(id); // jobs attempts incremented
 
             Job job = jobStore.findById(id);
             
