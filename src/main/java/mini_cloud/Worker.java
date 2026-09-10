@@ -81,12 +81,68 @@ public class Worker implements CommandLineRunner {
 
             heartbeat.start();
 
-            executeJob(job, workerId);
+            boolean retried = false; // Check if the job needs updating
+
+            try {
+                // executes as per usual
+                executeJob(job, workerId);
+
+                jobStore.updateStatus(
+                        job.getId(),
+                        "COMPLETED",
+                        job.getResult()
+                );
+
+            } catch (Exception e) {
+
+                // error for a job 
+                System.out.println(
+                        "Worker " + workerId +
+                        " failed job " + job.getId() +
+                        ": " + e.getMessage()
+                );
+
+                // Check if the max attempts has been reached
+                if (job.getAttempts() < 3) {
+
+                    System.out.println(
+                            "Retrying job " + job.getId() +
+                            " (attempt " + job.getAttempts() + ")"
+                    );
+
+                    jobStore.updateStatus(
+                            job.getId(),
+                            "QUEUED",
+                            e.getMessage()
+                    );
+
+                    jobQueue.retry(jobId);
+                    retried = true; // do not mark as complete and release lease again 
+
+                } else {
+
+                    System.out.println(
+                            "Job " + job.getId() +
+                            " permanently failed after 3 attempts"
+                    );
+
+                    jobStore.updateStatus(
+                            job.getId(),
+                            "FAILED",
+                            e.getMessage()
+                    );
+
+                    jobQueue.markedComplete(jobId);
+                    jobQueue.releaseLease(jobId);
+                }
+            }
 
             heartbeat.interrupt();
 
-            jobQueue.markedComplete(jobId);
-            jobQueue.releaseLease(jobId);
+            if (!retried) {
+                jobQueue.markedComplete(jobId);
+                jobQueue.releaseLease(jobId);
+            }
         }
     }
 
@@ -150,6 +206,10 @@ public class Worker implements CommandLineRunner {
                 );
                 break;
 
+            // For testing
+            case "FAIL":
+                throw new RuntimeException("Intentional test failure");
+
             default:
                 jobStore.updateStatus(
                         job.getId(),
@@ -161,31 +221,4 @@ public class Worker implements CommandLineRunner {
         System.out.println("Worker" + workerId + " finished job " + jobId);
     }
 
-    // private void startHeartbeat(String jobId, int workerId, Thread[] heartbeatHolder) {
-
-    //     Thread heartbeat = new Thread(() -> {
-
-    //         try {
-    //             while (!Thread.currentThread().isInterrupted()) {
-
-    //                 Thread.sleep(3000);
-
-    //                 jobQueue.renewLease(jobId, workerId);
-
-    //                 System.out.println(
-    //                         "Worker " + workerId +
-    //                         " renewed lease for job " + jobId
-    //                 );
-    //             }
-
-    //         } catch (InterruptedException e) {
-    //             Thread.currentThread().interrupt();
-    //         }
-
-    //     }, "heartbeat-" + workerId);
-
-    //     heartbeat.start();
-
-    //     heartbeatHolder[0] = heartbeat;
-    // }
 }

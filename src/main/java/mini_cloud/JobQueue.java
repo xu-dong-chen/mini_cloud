@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class JobQueue {
 
     private static final long LEASE_SECONDS = 10;
+    private static final int MAX_ATTEMPTS = 3;
 
     private static final String QUEUE_KEY = "job:queue";
     private static final String PROCESSING_KEY = "job:processing"; // used to prevent jobs lost when worker fails
@@ -76,5 +77,12 @@ public class JobQueue {
                 PROCESSING_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.LEFT
         );
+    }
+
+    // function to allow a job to retry itself
+    public void retry(String jobId){
+        markedComplete(jobId);
+        releaseLease(jobId);
+        enqueue(jobId);
     }
 }

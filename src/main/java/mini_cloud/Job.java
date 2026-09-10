@@ -8,8 +8,8 @@ public class Job{
 	private String type;
 	private String status;
 	private String result;
-	private int attempts;
-	
+	private int attempts; // for max retries
+
 	// For actual new jobs
 	public Job(String type) { 
 		this.id = UUID.randomUUID(); 

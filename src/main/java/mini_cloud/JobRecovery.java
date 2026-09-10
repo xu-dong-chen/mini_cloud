@@ -10,6 +10,7 @@ import org.springframework.stereotype.Component;
 public class JobRecovery {
 
     private static final String PROCESSING_KEY = "job:processing";
+    private static final int MAX_ATTEMPTS = 3;
 
     private final StringRedisTemplate redisTemplate;
     private final JobQueue jobQueue;
