@@ -21,6 +21,8 @@ public class JobStore{
         String value = job.getType() + "|" + 
                         job.getStatus() + "|" + 
                         job.getAttempts() + "|" +
+                        job.getCreatedAt() + "|" +
+                        job.getStartedAt() + "|" +
                         (job.getResult() == null ? "": job.getResult()); 
         redisTemplate.opsForValue().set(key,value);
 
@@ -41,13 +43,15 @@ public class JobStore{
         String type = parts[0];
         String status = parts[1];
         int attempts = Integer.parseInt(parts[2]);
-        String result = parts[3].isEmpty() ? null : parts[3]; // result is null if there was originally nothing
+        long createdAt = Long.parseLong(parts[3]);
+        long startedAt = Long.parseLong(parts[4]);
+        String result = parts[5].isEmpty() ? null : parts[5]; // result is null if there was originally nothing
         
         
-        return new Job(id, type, status, result,attempts);
+        return new Job(id, type, status, result, attempts, createdAt, startedAt);
     }
 
-    // function that updates the status of the job (Type|Status|attempts|result)
+    // function that updates the status of the job (Type|Status|attempts|createdAt|startedAt|result)
     public void updateStatus(UUID id, String status, String result) {
         
         Job job = findById(id);
@@ -63,6 +67,7 @@ public class JobStore{
         save(job);
     }
 
+    // function used for retries
     public void incrementAttempts(UUID id){
 
         Job job = findById(id);
@@ -73,5 +78,73 @@ public class JobStore{
 
         job.Attempted();
         save(job);
+    }
+
+    // function to check for idempotency
+    public boolean isCompleted(UUID id) {
+
+        Job job = findById(id);
+
+        if (job == null) {
+            return false;
+        }
+
+        return "COMPLETED".equals(job.getStatus());
+    }
+
+    // for checking if a worker is already running that job
+    public boolean isRunning(UUID id) {
+
+        Job job = findById(id);
+
+        if (job == null) {
+            return false;
+        }
+
+        return "RUNNING".equals(job.getStatus());
+    }
+
+    // marks a job as running
+    public void markRunning(UUID id) {
+
+        Job job = findById(id);
+
+        if (job == null) {
+            return;
+        }
+
+        job.setStatus("RUNNING");
+        job.setStartedAt(System.currentTimeMillis());
+
+        save(job);
+    }
+
+    // checks if the job has ran for longer than the allowed time
+    public boolean hasTimedOut(UUID id, long timeoutMs) {
+
+        Job job = findById(id);
+
+        if (job == null) {
+            return false;
+        }
+
+        if (!"RUNNING".equals(job.getStatus())) {
+            return false;
+        }
+
+        long runningTime =
+                System.currentTimeMillis() - job.getStartedAt();
+
+        return runningTime > timeoutMs;
+    }
+
+    public boolean canRetry(UUID id) {
+        Job job = findById(id);
+
+        if (job == null) {
+            return false;
+        }
+
+        return job.getAttempts() < 3;
     }
 }

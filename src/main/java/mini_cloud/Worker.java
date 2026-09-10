@@ -52,11 +52,30 @@ public class Worker implements CommandLineRunner {
                 continue;
             }
 
+            // Check if the job has already been completed
+            if (jobStore.isCompleted(job.getId()) || "FAILED".equals(job.getStatus())) {
+
+                System.out.println(
+                        "Job " + job.getId() +
+                        " is already " + job.getStatus() +
+                        " Skipping execution."
+                );
+
+                jobQueue.markedComplete(jobId);
+                jobQueue.releaseLease(jobId);
+                continue;
+            }
+
+            jobStore.markRunning(job.getId()); // marks the job as running
+          
             System.out.println(
                     "Worker received job: " + job.getId() +
                     " type = " + job.getType() +
                     " status = " + job.getStatus()
             );
+
+
+            Thread executionThread = Thread.currentThread();
 
             Thread heartbeat = new Thread(() -> {
 
@@ -64,6 +83,16 @@ public class Worker implements CommandLineRunner {
                     while (!Thread.currentThread().isInterrupted()) {
 
                         Thread.sleep(3000);
+
+                        if (!jobQueue.ownsLease(jobId, workerId)) {
+
+                            System.out.println(
+                                    "Worker " + workerId +
+                                    " lost lease for job " + jobId
+                            );
+                            executionThread.interrupt();
+                            break;
+                        }
 
                         jobQueue.renewLease(jobId, workerId);
 
@@ -102,12 +131,23 @@ public class Worker implements CommandLineRunner {
                         ": " + e.getMessage()
                 );
 
-                // Check if the max attempts has been reached
-                if (job.getAttempts() < 3) {
+                // Check if the max attempts has been reached on Redis
+                Job currentJob = jobStore.findById(job.getId());
+
+                if (currentJob != null &&
+                        "FAILED".equals(currentJob.getStatus())) {
+
+                    System.out.println(
+                            "Job " + job.getId() +
+                            " was already marked FAILED. Skipping retry."
+                    );
+
+                } else if (currentJob != null &&
+                        currentJob.getAttempts() < 3) {
 
                     System.out.println(
                             "Retrying job " + job.getId() +
-                            " (attempt " + job.getAttempts() + ")"
+                            " (attempt " + currentJob.getAttempts() + ")"
                     );
 
                     jobStore.updateStatus(
@@ -117,7 +157,7 @@ public class Worker implements CommandLineRunner {
                     );
 
                     jobQueue.retry(jobId);
-                    retried = true; // do not mark as complete and release lease again 
+                    retried = true;
 
                 } else {
 
@@ -181,16 +221,11 @@ public class Worker implements CommandLineRunner {
             case "SLEEP":
                 try {
                     Thread.sleep(20000);
+                    job.setResult("Slept for 20 seconds");
                 } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-
-                    jobStore.updateStatus(
-                            job.getId(),
-                            "FAILED",
-                            "SLEEP interrupted"
-                    );
-                    break;
+                    throw new RuntimeException("SLEEP interrupted");
                 }
+
                 jobStore.updateStatus(
                             job.getId(),
                             "COMPLETED",

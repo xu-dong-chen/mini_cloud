@@ -9,6 +9,8 @@ public class Job{
 	private String status;
 	private String result;
 	private int attempts; // for max retries
+	private long createdAt; // for idempotency
+	private long startedAt;
 
 	// For actual new jobs
 	public Job(String type) { 
@@ -16,15 +18,18 @@ public class Job{
 		this.type = type; 
 		this.status = "QUEUED";
 		this.attempts = 0; 
+		this.createdAt = System.currentTimeMillis();
 	}
 
 	// For reconstructing jobs from Redis
-	public Job(UUID id, String type, String status, String result, int attempts){
+	public Job(UUID id, String type, String status, String result, int attempts, long createdAt, long startedAt){
 		this.id = id;
 		this.type = type;
 		this.status = status;
 		this.result = result;
 		this.attempts = attempts;
+		this.createdAt = createdAt;
+		this.startedAt = startedAt;
 	}
 
 	public UUID getId(){
@@ -59,4 +64,15 @@ public class Job{
 		attempts++;
 	}
 	
+	public long getCreatedAt() {
+    	return createdAt;
+	}
+
+	public long getStartedAt() {
+		return startedAt;
+	}
+
+	public void setStartedAt(long startedAt) {
+		this.startedAt = startedAt;
+	}
 }

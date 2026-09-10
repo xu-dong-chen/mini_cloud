@@ -10,7 +10,6 @@ import org.springframework.stereotype.Component;
 public class JobQueue {
 
     private static final long LEASE_SECONDS = 10;
-    private static final int MAX_ATTEMPTS = 3;
 
     private static final String QUEUE_KEY = "job:queue";
     private static final String PROCESSING_KEY = "job:processing"; // used to prevent jobs lost when worker fails
@@ -84,5 +83,14 @@ public class JobQueue {
         markedComplete(jobId);
         releaseLease(jobId);
         enqueue(jobId);
+    }
+
+    public boolean ownsLease(String jobId, int workerId) {
+
+        String leaseKey = "job:lease:" + jobId;
+
+        String owner = redisTemplate.opsForValue().get(leaseKey);
+
+        return ("worker-" + workerId).equals(owner);
     }
 }
