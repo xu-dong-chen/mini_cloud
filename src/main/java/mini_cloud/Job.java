@@ -11,18 +11,20 @@ public class Job{
 	private int attempts; // for max retries
 	private long createdAt; // for idempotency
 	private long startedAt;
+	private int priority; // for FIFO. 3 = high priority and 1 = low priority
 
 	// For actual new jobs
-	public Job(String type) { 
+	public Job(String type, int priority) { 
 		this.id = UUID.randomUUID(); 
 		this.type = type; 
 		this.status = "QUEUED";
 		this.attempts = 0; 
 		this.createdAt = System.currentTimeMillis();
+		this.priority = priority;
 	}
 
 	// For reconstructing jobs from Redis
-	public Job(UUID id, String type, String status, String result, int attempts, long createdAt, long startedAt){
+	public Job(UUID id, String type, String status, String result, int attempts, long createdAt, long startedAt, int priority){
 		this.id = id;
 		this.type = type;
 		this.status = status;
@@ -30,6 +32,7 @@ public class Job{
 		this.attempts = attempts;
 		this.createdAt = createdAt;
 		this.startedAt = startedAt;
+		this.priority = priority;
 	}
 
 	public UUID getId(){
@@ -74,5 +77,9 @@ public class Job{
 
 	public void setStartedAt(long startedAt) {
 		this.startedAt = startedAt;
+	}
+
+	public int getPriority() {
+	    return priority;
 	}
 }

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 public class JobTimeoutChecker {
 
     private static final String PROCESSING_KEY = "job:processing";
-    private static final long JOB_TIMEOUT_MS = 15_000;
+    private static final long JOB_TIMEOUT_MS = 30_000;
 
     private final StringRedisTemplate redisTemplate;
     private final JobStore jobStore;

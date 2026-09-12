@@ -1,6 +1,7 @@
 package mini_cloud;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
@@ -11,24 +12,46 @@ public class JobQueue {
 
     private static final long LEASE_SECONDS = 10;
 
-    private static final String QUEUE_KEY = "job:queue";
+    private static final String LOW_QUEUE_KEY = "job:queue:low";
+    private static final String MED_QUEUE_KEY = "job:queue:medium";
+    private static final String HIGH_QUEUE_KEY = "job:queue:high";
     private static final String PROCESSING_KEY = "job:processing"; // used to prevent jobs lost when worker fails
     
     private final StringRedisTemplate redisTemplate;
+    private final JobStore jobStore;
 
-    public JobQueue(StringRedisTemplate redisTemplate) {
+    public JobQueue(
+            StringRedisTemplate redisTemplate,
+            JobStore jobStore
+    ) {
         this.redisTemplate = redisTemplate;
+        this.jobStore = jobStore;
     }
 
-    // Adds a job to the right of the list
+    // Adds a job to the right of the list and sorts it by priority with 3 different queues
     public void enqueue(String jobId) {
-        redisTemplate.opsForList().rightPush(QUEUE_KEY, jobId);
-    }
 
-    // Removes the job from the left of the list
-    public String dequeue() {
-        return redisTemplate.opsForList()
-                .leftPop(QUEUE_KEY, Duration.ofSeconds(5));
+        Job job = jobStore.findById(UUID.fromString(jobId));
+
+        if (job == null) {
+            return;
+        }
+
+        String queueKey;
+
+        switch (job.getPriority()) {
+            case 3:
+                queueKey = HIGH_QUEUE_KEY;
+                break;
+            case 2:
+                queueKey = MED_QUEUE_KEY;
+                break;
+            default:
+                queueKey = LOW_QUEUE_KEY;
+                break;
+        }
+
+        redisTemplate.opsForList().rightPush(queueKey, jobId);
     }
 
     // Mark the job as processing
@@ -70,8 +93,35 @@ public class JobQueue {
 
     public String claimJob() {
 
+        String jobId;
+
+        // Try high priority first
+        jobId = redisTemplate.opsForList().move(
+                HIGH_QUEUE_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
+                PROCESSING_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.LEFT
+        );
+
+        if (jobId != null) {
+            return jobId;
+        }
+
+        // Then medium priority
+        jobId = redisTemplate.opsForList().move(
+                MED_QUEUE_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
+                PROCESSING_KEY,
+                org.springframework.data.redis.connection.RedisListCommands.Direction.LEFT
+        );
+
+        if (jobId != null) {
+            return jobId;
+        }
+
+        // Finally low priority
         return redisTemplate.opsForList().move(
-                QUEUE_KEY,
+                LOW_QUEUE_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
                 PROCESSING_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.LEFT

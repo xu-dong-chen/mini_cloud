@@ -20,6 +20,7 @@ public class JobStore{
 
         String value = job.getType() + "|" + 
                         job.getStatus() + "|" + 
+                        job.getPriority() + "|" + 
                         job.getAttempts() + "|" +
                         job.getCreatedAt() + "|" +
                         job.getStartedAt() + "|" +
@@ -42,16 +43,17 @@ public class JobStore{
 
         String type = parts[0];
         String status = parts[1];
-        int attempts = Integer.parseInt(parts[2]);
-        long createdAt = Long.parseLong(parts[3]);
-        long startedAt = Long.parseLong(parts[4]);
-        String result = parts[5].isEmpty() ? null : parts[5]; // result is null if there was originally nothing
+        int priority = Integer.parseInt(parts[2]);
+        int attempts = Integer.parseInt(parts[3]);
+        long createdAt = Long.parseLong(parts[4]);
+        long startedAt = Long.parseLong(parts[5]);
+        String result = parts[6].isEmpty() ? null : parts[6]; // result is null if there was originally nothing
         
         
-        return new Job(id, type, status, result, attempts, createdAt, startedAt);
+        return new Job(id, type, status, result, attempts, createdAt, startedAt, priority);
     }
 
-    // function that updates the status of the job (Type|Status|attempts|createdAt|startedAt|result)
+    // function that updates the status of the job (Type|Status|priority|attempts|createdAt|startedAt|result)
     public void updateStatus(UUID id, String status, String result) {
         
         Job job = findById(id);

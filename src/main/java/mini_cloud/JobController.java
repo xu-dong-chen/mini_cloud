@@ -25,7 +25,7 @@ public class JobController {
     @PostMapping
     public Job createJob(@RequestBody CreateJobRequest request) {
 
-        Job job = new Job(request.type());
+        Job job = new Job(request.type(), request.priority);
 
         jobs.save(job);
         jobQueue.enqueue(job.getId().toString());
@@ -39,6 +39,6 @@ public class JobController {
         return jobs.findById(id);
     }
 
-    public record CreateJobRequest(String type) {
+    public record CreateJobRequest(String type, int priority) {
     }
 }

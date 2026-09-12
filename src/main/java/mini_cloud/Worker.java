@@ -9,12 +9,15 @@ import org.springframework.stereotype.Component;
 @Component
 public class Worker implements CommandLineRunner {
 
+    private final WorkerMetrics metrics;
+
     private final JobQueue jobQueue;
     private final JobStore jobStore;
 
-    public Worker(JobQueue jobQueue, JobStore jobStore) {
+    public Worker(JobQueue jobQueue, JobStore jobStore, WorkerMetrics metrics) {
         this.jobQueue = jobQueue;
         this.jobStore = jobStore;
+        this.metrics = metrics;
     }
 
     @Override
@@ -114,7 +117,13 @@ public class Worker implements CommandLineRunner {
 
             try {
                 // executes as per usual
-                executeJob(job, workerId);
+                long startTime = System.currentTimeMillis();
+
+                executeJob(job, workerId); // update metric
+
+                long executionTime = System.currentTimeMillis() - startTime;
+
+                metrics.recordCompleted(executionTime);
 
                 jobStore.updateStatus(
                         job.getId(),
@@ -157,6 +166,7 @@ public class Worker implements CommandLineRunner {
                     );
 
                     jobQueue.retry(jobId);
+                    metrics.recordRetried(); // update metric
                     retried = true;
 
                 } else {
@@ -165,6 +175,8 @@ public class Worker implements CommandLineRunner {
                             "Job " + job.getId() +
                             " permanently failed after 3 attempts"
                     );
+
+                    metrics.recordFailed(); // update metric
 
                     jobStore.updateStatus(
                             job.getId(),
