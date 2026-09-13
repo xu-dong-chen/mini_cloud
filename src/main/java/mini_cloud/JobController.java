@@ -1,5 +1,6 @@
 package mini_cloud;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -37,6 +38,11 @@ public class JobController {
     public Job getJob(@PathVariable UUID id) {
 
         return jobs.findById(id);
+    }
+
+    @GetMapping
+    public List<Job> getAllJobs() {
+        return jobs.findAll();
     }
 
     public record CreateJobRequest(String type, int priority) {

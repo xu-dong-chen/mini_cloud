@@ -22,7 +22,10 @@ public class Worker implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        int workerId = Integer.parseInt(System.getProperty("worker.id", "1"));
+
+        int workerId = Integer.parseInt(
+                System.getenv().getOrDefault("WORKER_ID", "1")
+        );
 
         System.out.println("starting worker " + workerId);
 

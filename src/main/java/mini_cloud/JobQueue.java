@@ -83,6 +83,7 @@ public class JobQueue {
             return;
         }
 
+        // extends the lease for a fixed amount of time
         redisTemplate.expire(leaseKey,Duration.ofSeconds(LEASE_SECONDS));
     }
 
@@ -91,11 +92,12 @@ public class JobQueue {
         redisTemplate.delete(leaseKey);
     }
 
+    // function to essentially dequeue the jobs based on priority
     public String claimJob() {
 
         String jobId;
 
-        // Try high priority first
+        // try high priority jobs first
         jobId = redisTemplate.opsForList().move(
                 HIGH_QUEUE_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
@@ -107,7 +109,7 @@ public class JobQueue {
             return jobId;
         }
 
-        // Then medium priority
+        // for medium priority jobs
         jobId = redisTemplate.opsForList().move(
                 MED_QUEUE_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,
@@ -119,7 +121,7 @@ public class JobQueue {
             return jobId;
         }
 
-        // Finally low priority
+        // finally low priority jobs
         return redisTemplate.opsForList().move(
                 LOW_QUEUE_KEY,
                 org.springframework.data.redis.connection.RedisListCommands.Direction.RIGHT,

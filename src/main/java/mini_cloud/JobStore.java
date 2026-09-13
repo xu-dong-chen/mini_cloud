@@ -1,5 +1,8 @@
 package mini_cloud;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -51,6 +54,52 @@ public class JobStore{
         
         
         return new Job(id, type, status, result, attempts, createdAt, startedAt, priority);
+    }
+
+    public List<Job> findAll() {
+
+        Set<String> keys = redisTemplate.keys("job:*");
+
+        if (keys == null) {
+            return new ArrayList<>();
+        }
+
+        List<Job> jobs = new ArrayList<>();
+
+        for (String key : keys) {
+
+            // Ignore queue/processing/lease keys
+            if (!key.startsWith("job:") ||
+                key.equals("job:queue:high") ||
+                key.equals("job:queue:medium") ||
+                key.equals("job:queue:low") ||
+                key.equals("job:processing") ||
+                key.startsWith("job:lease:")) {
+                continue;
+            }
+
+            String value = redisTemplate.opsForValue().get(key);
+
+            if (value == null) {
+                continue;
+            }
+
+            String[] parts = value.split("\\|", -1);
+
+            UUID id = UUID.fromString(key.substring("job:".length()));
+
+            String type = parts[0];
+            String status = parts[1];
+            int priority = Integer.parseInt(parts[2]);
+            int attempts = Integer.parseInt(parts[3]);
+            long createdAt = Long.parseLong(parts[4]);
+            long startedAt = Long.parseLong(parts[5]);
+            String result = parts.length > 6 ? parts[6] : null;
+
+            jobs.add(new Job(id, type, status, result, attempts, createdAt, startedAt, priority));
+        }
+
+        return jobs;
     }
 
     // function that updates the status of the job (Type|Status|priority|attempts|createdAt|startedAt|result)

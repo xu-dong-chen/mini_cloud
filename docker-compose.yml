@@ -1,6 +1,36 @@
 services:
+
   redis:
     image: redis:7
     container_name: mini-cloud-redis
     ports:
       - "6379:6379"
+
+  worker1:
+    image: minicloud-worker
+    environment:
+      WORKER_ID: 1
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    depends_on:
+      - redis
+
+  worker2:
+    image: minicloud-worker
+    environment:
+      WORKER_ID: 2
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - redis
+
+  worker3:
+    image: minicloud-worker
+    environment:
+      WORKER_ID: 3
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+    depends_on:
+      - redis
