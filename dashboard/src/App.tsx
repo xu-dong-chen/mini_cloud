@@ -24,6 +24,35 @@ function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [jobType, setJobType] = useState("SLEEP");
+  const [priority, setPriority] = useState(1);
+  const [submitting, setSubmitting] = useState(false);
+
+  const submitJob = async () => {
+      setSubmitting(true);
+
+      try {
+        const response = await fetch("http://localhost:8080/jobs", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            type: jobType,
+            priority: priority,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+      } catch (error) {
+        setError(error instanceof Error ? error.message : "Failed to submit job");
+      } finally {
+        setSubmitting(false);
+      }
+    };
 
   useEffect(() => {
 
@@ -114,6 +143,40 @@ function App() {
           </tbody>
         </table>
       )}
+
+    <h2>Submit Job</h2>
+
+    <div>
+      <label>
+        Type:{" "}
+        <select
+          value={jobType}
+          onChange={(e) => setJobType(e.target.value)}
+        >
+          <option value="SLEEP">SLEEP</option>
+        </select>
+      </label>
+
+      <br />
+
+      <label>
+        Priority:{" "}
+        <select
+          value={priority}
+          onChange={(e) => setPriority(Number(e.target.value))}
+        >
+          <option value={3}>High</option>
+          <option value={2}>Medium</option>
+          <option value={1}>Low</option>
+        </select>
+      </label>
+
+      <br />
+
+      <button onClick={submitJob} disabled={submitting}>
+        {submitting ? "Submitting..." : "Submit Job"}
+      </button>
+    </div>
     </div>
   );
 }

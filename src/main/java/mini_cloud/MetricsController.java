@@ -27,9 +27,9 @@ public class MetricsController {
     }
 
     public record MetricsResponse(
-            int completed,
-            int failed,
-            int retried,
+            long completed,
+            long failed,
+            long retried,
             long totalExecutionTimeMs,
             long averageExecutionTimeMs
     ) {}
